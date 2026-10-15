@@ -469,8 +469,8 @@
 }
 
 .ls-window-controls {
-  &.ls-agent-panel-open {
-    .cp__agent-panel-topbar {
+  &.ls-right-sidebar-open {
+    .cp__right-sidebar-topbar {
       margin-right: 144px;
 
       .is-fullscreen & {
@@ -479,24 +479,12 @@
     }
   }
 
-  &:not(.ls-agent-panel-open) {
-    &.ls-right-sidebar-open {
-      .cp__right-sidebar-topbar {
-        margin-right: 144px;
+  &:not(.ls-right-sidebar-open) {
+    .cp__header > .r {
+      margin-right: 144px;
 
-        .is-fullscreen & {
-          margin-right: 48px;
-        }
-      }
-    }
-
-    &:not(.ls-right-sidebar-open) {
-      .cp__header > .r {
-        margin-right: 144px;
-
-        .is-fullscreen & {
-          margin-right: 48px;
-        }
+      .is-fullscreen & {
+        margin-right: 48px;
       }
     }
   }
@@ -544,22 +532,19 @@
   }
 
   &-btn {
-    @apply relative flex items-center ml-1 z-[var(--ls-z-index-level-3)];
-
-    -webkit-app-region: no-drag;
+    @apply fixed bottom-4 right-4 sm:right-8 opacity-70 hover:opacity-100 z-[var(--ls-z-index-level-3)];
 
     > .inner {
       @apply rounded-full h-8 w-8 flex items-center justify-center
-      font-bold select-none cursor-pointer opacity-70 hover:opacity-100;
+      font-bold select-none cursor-pointer;
 
       background-color: var(--lx-gray-02, var(--ls-secondary-background-color, var(--rx-gray-02)));
     }
   }
 
   &-menu-popup {
-    @apply absolute top-full left-0 mt-2 z-[var(--ls-z-index-level-3)] border rounded-lg min-w-[260px] shadow;
+    @apply fixed bottom-14 right-8 z-[var(--ls-z-index-level-3)] border rounded-lg min-w-[260px] shadow;
 
-    -webkit-app-region: no-drag;
     background-color: var(--ls-secondary-background-color, var(--rx-gray-03));
 
     > .list-wrap {

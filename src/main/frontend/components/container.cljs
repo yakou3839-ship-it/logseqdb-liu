@@ -2,7 +2,6 @@
   (:require [cljs-drag-n-drop.core :as dnd]
             [clojure.string :as string]
             [dommy.core :as d]
-            [frontend.components.agent :as agent]
             [frontend.components.block.selection :as block-selection]
             [frontend.components.content :as cp-content]
             [frontend.components.find-in-page :as find-in-page]
@@ -30,14 +29,18 @@
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util :as util]
+            [frontend.version :refer [version]]
             [goog.dom :as gdom]
             [goog.object :as gobj]
+            [logseq.common.version :as build-version]
             [logseq.shui.dialog.core :as shui-dialog]
             [logseq.shui.hooks :as hooks]
             [logseq.shui.popup.core :as shui-popup]
             [logseq.shui.toaster.core :as shui-toaster]
             [logseq.shui.ui :as shui]
+            [medley.core :as medley]
             [promesa.core :as p]
+            [reitit.frontend.easy :as rfe]
             [io.factorhouse.hsx.core :as hsx]))
 
 (defn- focus-main-content-container-if-body!
@@ -251,10 +254,83 @@
              (ui/render-keyboard-shortcut (shortcut-dh/gen-shortcut-seq :ui/toggle-document-mode)
                                           :shortcut-id :ui/toggle-document-mode)]])]]]]])))
 
-(hsx/defc handbooks-overlay
+(def help-menu-items
+  [{:title (t :help/handbook) :icon "book-2" :on-click #(handbooks/toggle-handbooks)}
+   {:title (t :help.shortcuts/label) :icon "command" :on-click #(state/sidebar-add-block! (state/get-current-repo) "shortcut-settings" :shortcut-settings)}
+   {:title (t :help/docs) :icon "help" :href "https://docs.logseq.com/"}
+   :hr
+   {:title (t :help/bug) :icon "bug" :on-click #(rfe/push-state :bug-report)}
+   {:title (t :help/feature) :icon "git-pull-request" :href "https://discuss.logseq.com/c/feedback/feature-requests/"}
+   {:title (t :help/submit-feedback) :icon "messages" :href "https://discuss.logseq.com/c/feedback/13"}
+   :hr
+   {:title (t :help/ask-community) :icon "brand-discord" :href "https://discord.com/invite/KpN4eHY"}
+   {:title (t :help/support-forum) :icon "message" :href "https://discuss.logseq.com/"}
+   :hr
+   {:title (t :help/release-notes) :icon "asterisk" :href "https://docs.logseq.com/#/page/changelog"}])
+
+(hsx/defc help-menu-popup
   []
-  (when (rfx/use-sub [:ui/handbooks-open?])
-    (handbooks/handbooks-popup)))
+  (hooks/use-effect!
+   (fn []
+     (state/set-state! :ui/handbooks-open? false))
+   [])
+
+  (hooks/use-effect!
+   (fn []
+     (let [h (fn [^js e]
+               (when-not (some-> (.-target e)
+                                  (.closest ".cp__sidebar-help-btn, .cp__sidebar-help-menu-popup"))
+                 (state/set-state! :ui/help-open? false)))]
+       (.addEventListener js/document.body "click" h)
+       #(.removeEventListener js/document.body "click" h)))
+   [])
+
+  [:div.cp__sidebar-help-menu-popup
+   [:div.list-wrap
+    (for [[idx {:keys [title icon href on-click] :as item}] (medley/indexed help-menu-items)]
+      (case item
+        :hr
+        [:hr {:class "!my-2"
+              :key idx}]
+
+        ;; default
+        [:a.it.flex.items-center.px-4.py-1.select-none
+         {:key title
+          :on-click (fn []
+                      (cond
+                        (fn? on-click) (on-click)
+                        (string? href) (util/open-url href))
+                      (state/set-state! :ui/help-open? false))}
+         [:span.flex.items-center.pr-2.opacity-40 (ui/icon icon {:size 20})]
+         [:strong.font-normal title]]))]
+   [:div.ft.pl-11.pb-3.flex.flex-col.gap-1
+    [:span.opacity.text-xs.opacity-30 "Logseq " version]
+    (when-let [revision (not-empty (build-version/revision))]
+      [:span.opacity.text-xs.opacity-30 (t :help/revision revision)])]])
+
+(hsx/defc help-button
+  []
+  (let [help-open? (rfx/use-sub [:ui/help-open?])
+        handbooks-open? (rfx/use-sub [:ui/handbooks-open?])]
+    [:<>
+     [:div.cp__sidebar-help-btn
+      (ui/tooltip
+       [:div.inner
+        {:on-click (fn [e]
+                     (util/stop-propagation e)
+                     (state/toggle! :ui/help-open?))}
+        [:svg.scale-125 {:stroke "currentColor", :fill "none", :stroke-linejoin "round", :width "24", :view-box "0 0 24 24", :xmlns "http://www.w3.org/2000/svg", :stroke-linecap "round", :stroke-width "2", :class "icon icon-tabler icon-tabler-help-small", :height "24"}
+         [:path {:stroke "none", :d "M0 0h24v24H0z", :fill "none"}]
+         [:path {:d "M12 16v.01"}]
+         [:path {:d "M12 13a2 2 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483"}]]]
+       (t :help.shortcuts/desc)
+       {:root-props {:delay-duration 100}})]
+
+     (when help-open?
+       (help-menu-popup))
+
+     (when handbooks-open?
+       (handbooks/handbooks-popup))]))
 
 (defn- context-menu-click-should-hide?
   [target]
@@ -393,7 +469,6 @@
         system-theme? (rfx/use-sub [:ui/system-theme?])
         light? (= "light" theme)
         sidebar-open? (rfx/use-sub [:ui/sidebar-open?])
-        agent-panel-open? (rfx/use-sub [:ui/agent-panel-open?])
         settings-open? (rfx/use-sub [:ui/settings-open?])
         left-sidebar-open? (rfx/use-sub [:ui/left-sidebar-open?])
         wide-mode? (rfx/use-sub [:ui/wide-mode?])
@@ -466,7 +541,6 @@
       {:class (util/classnames
                [{:ls-left-sidebar-open left-sidebar-open?
                  :ls-right-sidebar-open sidebar-open?
-                 :ls-agent-panel-open agent-panel-open?
                  :ls-wide-mode wide-mode?
                  :ls-window-controls window-controls?
                  :ls-fold-button-on-right fold-button-on-right?
@@ -488,7 +562,7 @@
       [:div.#app-container
        {:on-mouse-up on-mouse-up}
        [:div#left-container
-        {:class (if (or sidebar-open? agent-panel-open?) "overflow-hidden" "w-full")}
+        {:class (if sidebar-open? "overflow-hidden" "w-full")}
         (header/header {:light? light?
                         :current-repo current-repo
                         :logged? logged?
@@ -517,9 +591,6 @@
 
        (right-sidebar/sidebar)
 
-       (when (util/electron?)
-         (agent/sidebar))
-
        [:div#app-single-container]]
 
       (shui-toaster/install-toaster)
@@ -547,4 +618,4 @@
       [:a#convert-markdown-to-unordered-list-or-heading.hidden]
       (when (and (not config/mobile?)
                  (not config/publishing?))
-        (handbooks-overlay))])))
+        (help-button))])))

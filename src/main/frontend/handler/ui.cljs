@@ -60,24 +60,6 @@
         (state/set-state! :ui/sidebar-collapsed-blocks collapsed)
         (restore-right-sidebar-width!)))))
 
-(defn persist-agent-panel-width!
-  [width]
-  (state/set-state! :ui/agent-panel-width width)
-  (storage/set "ls-agent-panel-width" width))
-
-(defn- set-agent-panel-open!
-  [open?]
-  (storage/set "ls-agent-panel-open?" open?)
-  (state/set-state! :ui/agent-panel-open? open?))
-
-(defn hide-agent-panel!
-  []
-  (set-agent-panel-open! false))
-
-(defn toggle-agent-panel!
-  []
-  (set-agent-panel-open! (not (:ui/agent-panel-open? (state/get-state)))))
-
 (defn toggle-contents!
   []
   (when-let [current-repo (state/get-current-repo)]

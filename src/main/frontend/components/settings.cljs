@@ -2,7 +2,6 @@
   (:require [clojure.string :as string]
             [electron.ipc :as ipc]
             [frontend.colors :as colors]
-            [frontend.components.agent-settings :as agent-settings]
             [frontend.components.assets :as assets]
             [frontend.components.email :as email-component]
             [frontend.components.shortcut :as shortcut]
@@ -1456,9 +1455,7 @@
   []
   [:div.panel-wrap
    (when (util/electron?)
-     (mcp-server-row t))
-   (when (util/electron?)
-     [agent-settings/agent-settings])])
+     (mcp-server-row t))])
 
 (hsx/defc ^:large-vars/cleanup-todo settings
   [_active-tab]
