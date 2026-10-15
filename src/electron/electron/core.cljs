@@ -364,25 +364,30 @@
 
 (defn- install-cli-launcher!
   []
-  (let [cli-path (cli-script-path)
-        cli-dir! #(if utils/win32?
-                    (preferred-win-cli-dir)
-                    (preferred-unix-cli-dir))]
-    (cli-install/install-cli-launcher!
-     {:windows? utils/win32?
-      :cli-path cli-path
-      :cli-dir! cli-dir!
-      :exe-path (.getPath app "exe")
-      :appimage-path (.-APPIMAGE js/process.env)
-      :path-join path-join
-      :exists? #(fs/existsSync %)
-      :read-file! #(.readFileSync fs % "utf8")
-      :write-file! #(.writeFileSync fs %1 %2 "utf8")
-      :chmod! #(fs/chmodSync %1 %2)
-      :show-error-box! #(.showErrorBox dialog %1 %2)
-      :t t
-      :log-info! logger/info
-      :log-warn! logger/warn})))
+  ;; Only a packaged app has the CLI bundle staged where `cli-script-path` looks for
+  ;; it, so anywhere else this can only fail, and it fails as a native error box on
+  ;; every launch. `dev?` is not the guard to use here: it reads NODE_ENV, which a
+  ;; packaged app does not set.
+  (when (.-isPackaged ^js app)
+    (let [cli-path (cli-script-path)
+          cli-dir! #(if utils/win32?
+                      (preferred-win-cli-dir)
+                      (preferred-unix-cli-dir))]
+      (cli-install/install-cli-launcher!
+       {:windows? utils/win32?
+        :cli-path cli-path
+        :cli-dir! cli-dir!
+        :exe-path (.getPath app "exe")
+        :appimage-path (.-APPIMAGE js/process.env)
+        :path-join path-join
+        :exists? #(fs/existsSync %)
+        :read-file! #(.readFileSync fs % "utf8")
+        :write-file! #(.writeFileSync fs %1 %2 "utf8")
+        :chmod! #(fs/chmodSync %1 %2)
+        :show-error-box! #(.showErrorBox dialog %1 %2)
+        :t t
+        :log-info! logger/info
+        :log-warn! logger/warn}))))
 
 (defn- on-app-ready!
   [^js app']
