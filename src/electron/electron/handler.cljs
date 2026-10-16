@@ -14,6 +14,7 @@
             ["path" :as node-path]
             [cljs-bean.core :as bean]
             [clojure.string :as string]
+            [electron.agent.ipc :as agent-ipc]
             [electron.backup-file :as backup-file]
             [electron.configs :as cfgs]
             [electron.db :as db]
@@ -637,3 +638,63 @@
                                                e)
                                  (throw e)))))))))
     #(.removeHandler ipcMain main-channel)))
+
+;; Agent IPC starts, see `electron.agent.ipc` for the implementation
+
+(defmethod handle :agent/state
+  [_window [_]]
+  (agent-ipc/state))
+
+;; History is a JS array, so this call travels the bean path, which rewrites map keys
+;; on the way in. The context therefore arrives as plain strings and the map is built
+;; here, in the runtime that reads it.
+(defmethod handle :agent/run
+  [^js window [_ repo input history run-id page-title selection]]
+  (agent-ipc/start-run! window repo input history run-id
+                        {:page-title page-title :selection selection}))
+
+(defmethod handle :agent/confirm-reply
+  [^js window [_ confirm-id reply]]
+  (agent-ipc/confirm-reply! (.-id window) confirm-id reply))
+
+(defmethod handle :agent/cancel
+  [^js window [_]]
+  (agent-ipc/cancel! (.-id window)))
+
+(defmethod handle :agent/list-sessions
+  [_window [_ repo]]
+  (agent-ipc/list-sessions repo))
+
+(defmethod handle :agent/get-session
+  [_window [_ repo id]]
+  (agent-ipc/get-session repo id))
+
+(defmethod handle :agent/save-session
+  [_window [_ repo session]]
+  (agent-ipc/save-session! repo session))
+
+(defmethod handle :agent/remove-session
+  [_window [_ repo id]]
+  (agent-ipc/remove-session! repo id))
+
+(defmethod handle :agent/install-preset
+  [_window [_ preset-id]]
+  (agent-ipc/install-preset! preset-id))
+
+(defmethod handle :agent/upsert-provider
+  [_window [_ provider]]
+  (agent-ipc/upsert-provider! provider))
+
+(defmethod handle :agent/remove-provider
+  [_window [_ provider-id]]
+  (agent-ipc/remove-provider! provider-id))
+
+(defmethod handle :agent/set-active
+  [_window [_ provider-id model-name]]
+  (agent-ipc/set-active! provider-id model-name))
+
+(defmethod handle :agent/set-enabled
+  [_window [_ enabled]]
+  (agent-ipc/set-enabled! enabled))
+
+;; Agent IPC ends

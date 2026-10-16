@@ -1,0 +1,297 @@
+.cp__agent-sidebar {
+  z-index: var(--ls-z-index-level-1);
+  transition: width 0.3s;
+  position: relative;
+  overflow: hidden;
+  border-left: 1px solid var(--lx-gray-05, var(--ls-border-color, var(--rx-gray-05)));
+  background-color: var(--ls-primary-background-color);
+
+  .resizer {
+    @apply absolute top-0 bottom-0 touch-none left-[1px] w-[3px] select-none;
+    @apply cursor-col-resize hover:bg-primary/90 focus:bg-primary/90 active:bg-primary/90;
+    @apply z-[1000] delay-300 transition-[background-color] duration-200;
+  }
+
+  &.closed {
+    @apply !w-0;
+    border-left-width: 0;
+
+    .resizer {
+      @apply hidden;
+    }
+  }
+
+  &.open {
+    max-width: 50vw;
+  }
+}
+
+.cp__agent-panel {
+  .cp__agent-panel-topbar {
+    @apply h-12 shrink-0;
+  }
+
+  .cp__agent-panel-hint {
+    @apply pb-2 text-sm opacity-80;
+  }
+
+  .cp__agent-panel-log {
+    @apply py-2;
+  }
+
+  .cp__agent-panel-empty {
+    @apply text-sm opacity-60;
+  }
+
+  .cp__agent-panel-input {
+    @apply shrink-0 p-3;
+  }
+}
+
+.agent-message {
+  @apply text-sm break-words whitespace-pre-wrap;
+}
+
+/* One question, one answer: the user's turn hugs its text and floats right, the
+   assistant's turn fills the row. */
+.agent-message-user,
+.agent-message-assistant {
+  @apply rounded-lg px-3 py-2;
+}
+
+.agent-message-user {
+  @apply self-end font-medium;
+  max-width: 82%;
+  background-color: var(--lx-gray-03, var(--rx-gray-03));
+}
+
+.agent-message-assistant {
+  background-color: var(--lx-gray-02, var(--rx-gray-02));
+}
+
+.agent-message-system,
+.agent-message-tool {
+  @apply text-xs opacity-70;
+}
+
+.agent-thinking {
+  @apply mb-1;
+}
+
+.agent-thinking > summary {
+  @apply flex cursor-pointer select-none items-center gap-1 text-xs opacity-70;
+  list-style: none;
+}
+
+.agent-thinking > summary::-webkit-details-marker {
+  display: none;
+}
+
+.agent-thinking > summary::before {
+  content: "▸";
+  @apply transition-transform duration-150;
+}
+
+.agent-thinking[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.agent-thinking-body {
+  @apply mt-1 border-l pl-3 text-xs opacity-70;
+  border-color: var(--lx-gray-06, var(--ls-border-color, var(--rx-gray-06)));
+}
+
+/* Tool steps sit inside their agent-message-tool row, so only the step's own
+   parts are styled here. */
+.agent-step {
+  @apply w-full;
+}
+
+.agent-step > summary.agent-step-label {
+  @apply flex cursor-pointer select-none items-center gap-1;
+  list-style: none;
+}
+
+.agent-step > summary.agent-step-label::-webkit-details-marker {
+  display: none;
+}
+
+.agent-step > summary.agent-step-label::before {
+  content: "·";
+  @apply w-3 text-center;
+}
+
+.agent-step-running > summary.agent-step-label::before,
+.agent-step-planning > summary.agent-step-label::before {
+  content: "…";
+}
+
+.agent-step-error > summary.agent-step-label::before {
+  content: "!";
+  color: var(--ls-error-text-color, #e25555);
+}
+
+.agent-step-ok > summary.agent-step-label::before {
+  content: "✓";
+}
+
+.agent-step-body {
+  @apply mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap break-words border-l pl-3 opacity-70;
+  border-color: var(--lx-gray-06, var(--ls-border-color, var(--rx-gray-06)));
+}
+
+.cp__agent-history-overlay {
+  @apply absolute inset-0 z-20;
+}
+
+.cp__agent-history {
+  @apply absolute right-2 top-12 flex max-h-[60%] w-64 flex-col overflow-y-auto rounded-md border py-1 shadow-lg;
+  background-color: var(--ls-primary-background-color);
+  border-color: var(--lx-gray-06, var(--ls-border-color, var(--rx-gray-06)));
+}
+
+.cp__agent-history-empty {
+  @apply px-3 py-2 text-sm opacity-60;
+}
+
+.cp__agent-history-item {
+  @apply flex cursor-pointer items-center justify-between gap-1 px-3 py-1.5 text-sm;
+
+  &:hover,
+  &.active {
+    background-color: var(--lx-gray-03, var(--rx-gray-03));
+  }
+
+  .cp__agent-history-title {
+    @apply flex-1 truncate;
+  }
+}
+
+/* A finished answer is the model's own markdown, so it needs its typography rather
+   than the app's block styles, and it must not inherit the row's pre-wrap. */
+.agent-md {
+  @apply whitespace-normal;
+
+  p {
+    @apply my-2;
+  }
+
+  > :first-child {
+    @apply mt-0;
+  }
+
+  > :last-child {
+    @apply mb-0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply my-3 font-semibold;
+  }
+
+  ul,
+  ol {
+    @apply my-2 list-disc pl-5;
+  }
+
+  ol {
+    @apply list-decimal;
+  }
+
+  li {
+    @apply my-0.5;
+  }
+
+  code {
+    @apply rounded px-1 py-0.5 text-xs;
+    background-color: var(--lx-gray-04, var(--rx-gray-04));
+  }
+
+  pre {
+    @apply my-2 overflow-x-auto rounded p-2 text-xs;
+    background-color: var(--lx-gray-03, var(--rx-gray-03));
+  }
+
+  blockquote {
+    @apply my-2 border-l pl-3 opacity-80;
+    border-color: var(--lx-gray-06, var(--ls-border-color, var(--rx-gray-06)));
+  }
+
+  hr {
+    @apply my-3;
+    border-color: var(--lx-gray-06, var(--ls-border-color, var(--rx-gray-06)));
+  }
+
+  a {
+    @apply text-primary underline;
+  }
+}
+
+.cp__agent-jump-bottom {
+  @apply absolute bottom-20 left-1/2 z-10 -translate-x-1/2 rounded-full border px-3 py-1 text-xs shadow;
+  background-color: var(--ls-primary-background-color);
+  border-color: var(--lx-gray-06, var(--ls-border-color, var(--rx-gray-06)));
+}
+
+.agent-usage {
+  @apply shrink-0 px-3 pb-1 text-xs opacity-50;
+}
+
+/* The write decision belongs to the panel, not to the window: the preview has to sit
+   over the conversation the user is reading. */
+.cp__agent-confirm-overlay {
+  @apply absolute inset-0 z-30 flex items-center justify-center p-4;
+  background-color: rgb(0 0 0 / 55%);
+}
+
+.cp__agent-confirm {
+  @apply w-full max-w-sm rounded-lg border p-4 shadow-xl;
+  background-color: var(--ls-primary-background-color);
+  border-color: var(--lx-gray-06, var(--ls-border-color, var(--rx-gray-06)));
+}
+
+.cp__agent-confirm-title {
+  @apply text-sm font-semibold;
+}
+
+.cp__agent-confirm-action {
+  @apply mt-2 break-words text-sm;
+}
+
+.cp__agent-confirm-label {
+  @apply mt-3 text-xs opacity-70;
+}
+
+.cp__agent-confirm-current,
+.cp__agent-confirm-new {
+  @apply mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded border p-2 text-sm;
+  background-color: var(--lx-gray-02, var(--rx-gray-02));
+  border-color: var(--lx-gray-06, var(--ls-border-color, var(--rx-gray-06)));
+}
+
+.cp__agent-confirm-current {
+  @apply opacity-75;
+}
+
+.cp__agent-confirm-property {
+  @apply mt-3 break-words text-xs;
+}
+
+.cp__agent-confirm-actions {
+  @apply mt-4 flex flex-wrap items-center justify-end gap-2;
+}
+
+.cp__agent-confirm-reject,
+.cp__agent-confirm-session {
+  @apply px-2 py-1 text-xs opacity-80;
+}
+
+.cp__agent-confirm-approve {
+  @apply rounded-md border-0 px-3 py-1.5 text-sm font-medium;
+  color: hsl(var(--primary-foreground));
+  background-image: linear-gradient(135deg,
+                    hsl(var(--primary)),
+                    hsl(var(--primary) / 0.72));
+}

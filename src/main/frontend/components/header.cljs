@@ -6,11 +6,13 @@
             [clojure.string :as string]
             [dommy.core :as d]
             [electron.ipc :as ipc]
+            [frontend.components.agent :as agent]
             [frontend.components.avatar :as avatar]
             [frontend.components.block.breadcrumb :as block-breadcrumb]
             [frontend.components.block.breadcrumb-model :as breadcrumb-model]
             [frontend.components.email :as email-component]
             [frontend.components.export :as export]
+            [frontend.components.handbooks :as handbooks]
             [frontend.components.page-menu :as page-menu]
             [frontend.components.plugins :as plugins]
             [frontend.components.repo :as repo]
@@ -41,6 +43,7 @@
             [logseq.common.version :as build-version]
             [logseq.shui.hooks :as hooks]
             [logseq.shui.ui :as shui]
+            [medley.core :as medley]
             [promesa.core :as p]
             [reitit.frontend.easy :as rfe]
             [io.factorhouse.hsx.core :as hsx]))
@@ -521,6 +524,79 @@
        [:div.search-index-progress__bar
         [:div.search-index-progress__bar-fill {:style {:width (str progress' "%")}}]]])))
 
+(def help-menu-items
+  [{:title (t :help/handbook) :icon "book-2" :on-click #(handbooks/toggle-handbooks)}
+   {:title (t :help.shortcuts/label) :icon "command" :on-click #(state/sidebar-add-block! (state/get-current-repo) "shortcut-settings" :shortcut-settings)}
+   {:title (t :help/docs) :icon "help" :href "https://docs.logseq.com/"}
+   :hr
+   {:title (t :help/bug) :icon "bug" :on-click #(rfe/push-state :bug-report)}
+   {:title (t :help/feature) :icon "git-pull-request" :href "https://discuss.logseq.com/c/feedback/feature-requests/"}
+   {:title (t :help/submit-feedback) :icon "messages" :href "https://discuss.logseq.com/c/feedback/13"}
+   :hr
+   {:title (t :help/ask-community) :icon "brand-discord" :href "https://discord.com/invite/KpN4eHY"}
+   {:title (t :help/support-forum) :icon "message" :href "https://discuss.logseq.com/"}
+   :hr
+   {:title (t :help/release-notes) :icon "asterisk" :href "https://docs.logseq.com/#/page/changelog"}])
+
+(hsx/defc help-menu-popup
+  []
+  (hooks/use-effect!
+   (fn []
+     (state/set-state! :ui/handbooks-open? false))
+   [])
+
+  (hooks/use-effect!
+   (fn []
+     (let [h (fn [^js e]
+               (when-not (some-> (.-target e)
+                                  (.closest ".cp__sidebar-help-btn, .cp__sidebar-help-menu-popup"))
+                 (state/set-state! :ui/help-open? false)))]
+       (.addEventListener js/document.body "click" h)
+       #(.removeEventListener js/document.body "click" h)))
+   [])
+
+  [:div.cp__sidebar-help-menu-popup
+   [:div.list-wrap
+    (for [[idx {:keys [title icon href on-click] :as item}] (medley/indexed help-menu-items)]
+      (case item
+        :hr
+        [:hr {:class "!my-2"
+              :key idx}]
+
+        ;; default
+        [:a.it.flex.items-center.px-4.py-1.select-none
+         {:key title
+          :on-click (fn []
+                      (cond
+                        (fn? on-click) (on-click)
+                        (string? href) (util/open-url href))
+                      (state/set-state! :ui/help-open? false))}
+         [:span.flex.items-center.pr-2.opacity-40 (ui/icon icon {:size 20})]
+         [:strong.font-normal title]]))]
+   [:div.ft.pl-11.pb-3.flex.flex-col.gap-1
+    [:span.opacity.text-xs.opacity-30 "Logseq " version]
+    (when-let [revision (not-empty (build-version/revision))]
+      [:span.opacity.text-xs.opacity-30 (t :help/revision revision)])]])
+
+(hsx/defc help-button
+  []
+  (let [help-open? (rfx/use-sub [:ui/help-open?])]
+    [:div.cp__sidebar-help-btn
+     (ui/tooltip
+      [:div.inner
+       {:on-click (fn [e]
+                    (util/stop-propagation e)
+                    (state/toggle! :ui/help-open?))}
+       [:svg.scale-125 {:stroke "currentColor", :fill "none", :stroke-linejoin "round", :width "24", :view-box "0 0 24 24", :xmlns "http://www.w3.org/2000/svg", :stroke-linecap "round", :stroke-width "2", :class "icon icon-tabler icon-tabler-help-small", :height "24"}
+        [:path {:stroke "none", :d "M0 0h24v24H0z", :fill "none"}]
+        [:path {:d "M12 16v.01"}]
+        [:path {:d "M12 13a2 2 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483"}]]]
+      (t :help.shortcuts/desc)
+      {:root-props {:delay-duration 100}})
+
+     (when help-open?
+       (help-menu-popup))]))
+
 (hsx/defc ^:large-vars/cleanup-todo header-aux
   [{:keys [current-repo default-home new-block-mode]}]
   (let [electron-mac? (and util/mac? (util/electron?))
@@ -570,12 +646,17 @@
                                        (state/set-left-sidebar-open! false))
                                      (state/pub-event! [:go/search]))})
             (t :nav/search)
-            {:trigger-props {:id "search-button"}})))]
+            {:trigger-props {:id "search-button"}})))
+      (when (and (not config/mobile?)
+                 (not config/publishing?))
+        (help-button))]
 
      [:div.r.flex.drag-region.justify-between.items-center.gap-2.overflow-x-hidden.w-full
       [:div.flex.flex-1
        (block-breadcrumb (state/get-current-page))]
       [:div.flex.items-center
+       (agent/toggle)
+
        (when (rtc-indicator-visible?
               {:current-repo current-repo
                :rtc-graphs rtc-graphs
